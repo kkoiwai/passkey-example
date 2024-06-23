@@ -16,8 +16,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>WebAuthn Codelab</title>
-    <meta name="description" content="WebAuthn Codelab">
+    <title>Passkey Demo</title>
+    <meta name="description" content="Passkey Demo">
     <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -29,7 +29,7 @@
   </head>
   <body class="mdc-typography">
     <mwc-top-app-bar-fixed>
-      <span slot="title">WebAuthn codelab</span>
+      <span slot="title">Passkey Demo</span>
     </mwc-top-app-bar-fixed>
     <main class="content">
       <div id="uvpa_available" class="hidden">
@@ -43,7 +43,7 @@
           <mwc-button id="cancel">Sign-in with password</mwc-button>
         </div>
       </div>
-      <form id="form" method="POST" action="/auth/password" class="hidden">
+      <form id="form"  class="hidden">
         <h2>
           Enter a password
         </h2>
@@ -55,41 +55,17 @@
           <span class="mdc-line-ripple"></span>
         </div>
         <input type="submit" class="mdc-button mdc-button--raised" value="Sign-In" />
-        <p class="instructions">password will be ignored in this demo.</p>
       </form>
+            <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
     </main>
     <script src="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.js"></script>
     <script type="module">
       new mdc.textField.MDCTextField(document.querySelector('.mdc-text-field'));
-      import { _fetch, authenticate } from '/client.js';
-      const form = document.querySelector('#form');
-      form.addEventListener('submit', e => {
-        e.preventDefault();
-        const form = new FormData(e.target);
-        const cred = {};
-        form.forEach((v, k) => cred[k] = v);
-        _fetch(e.target.action, cred)
-        .then(user => {
-          location.href = '/home';
-        })
-        .catch(e => alert(e));
-      });
+      import { _fetch, authenticate, passwordAuth } from '/client.js';
 
-      if (window.PublicKeyCredential) {
-        PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then(uvpaa => {
-          if (uvpaa && localStorage.getItem(`credId`)) {
-            document
-              .querySelector('#uvpa_available')
-              .classList.remove('hidden');
-          } else {
-            form.classList.remove('hidden');
-          }
-        });        
-      } else {
-        form.classList.remove('hidden');
-      }
-
+      document.querySelector('#uvpa_available')
+      .classList.remove('hidden');
+      
       const cancel = document.querySelector('#cancel');
       cancel.addEventListener('click', e => {
         form.classList.remove('hidden');
@@ -112,6 +88,17 @@
           form.classList.remove('hidden');
           document.querySelector('#uvpa_available').classList.add('hidden');
         });        
+      });
+      
+      const form = document.querySelector('#form');
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        passwordAuth(form.get("username"),form.get("password"))
+        .then(user => {
+          location.href = '/home';
+        })
+        .catch(e => alert(e));
       });
     </script>
   </body>

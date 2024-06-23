@@ -16,8 +16,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>WebAuthn Codelab</title>
-    <meta name="description" content="WebAuthn Codelab">
+    <title>Passkey Demo</title>
+    <meta name="description" content="Passkey Demo">
     <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -32,24 +32,26 @@
   </head>
   <body class="mdc-typography">
     <mwc-top-app-bar-fixed>
-      <span slot="title">WebAuthn codelab</span>
+      <span slot="title">Passkey Demo</span>
     </mwc-top-app-bar-fixed>
 
     <main class="content">
       <h2>
         Welcome, {{username}}!
       </h2>
+      <p class="instructions">
+        Click on "Add a credential" to register new passkey.
+      </p>
       <p id="uvpa_unavailable" class="hidden">
-        This device does not support User Verifying Platform Authenticator. You can't register a credential.
+        This device does not support User Verifying Platform Authenticator. You can't register a passkey.
       </p>
       <h3 class="mdc-typography mdc-typography--headline6">
-        Your registered credentials:
+        Your registered passkeys:
       </h3>
       <section>
         <div id="list"></div>
       </section>
       <mwc-button id="register" class="hidden" icon="fingerprint" raised>Add a credential</mwc-button>
-      <mwc-button raised><a href="/reauth">Try reauth</a></mwc-button>
       <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
     </main>
     <script type="module">
@@ -57,31 +59,34 @@
       import { html, render } from 'https://unpkg.com/lit-html@1.0.0/lit-html.js?module';
 
       const register = document.querySelector('#register');
+      register.classList.remove('hidden');
 
-      if (window.PublicKeyCredential) {
-        PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        .then(uvpaa => {
-          if (uvpaa) {
-            register.classList.remove('hidden');
-          } else {
-            document
-              .querySelector('#uvpa_unavailable')
-              .classList.remove('hidden');
-          }
-        });        
-      } else {
-        document
-          .querySelector('#uvpa_unavailable')
-          .classList.remove('hidden');
-      }
+      // if (window.PublicKeyCredential) {
+      //   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      //   .then(uvpaa => {
+      //     if (uvpaa) {
+      //       register.classList.remove('hidden');
+      //     } else {
+      //       document
+      //         .querySelector('#uvpa_unavailable')
+      //         .classList.remove('hidden');
+      //     }
+      //   });        
+      // } else {
+      //   document
+      //     .querySelector('#uvpa_unavailable')
+      //     .classList.remove('hidden');
+      // }
 
       const getCredentials = async () => {
         const res = await _fetch('/auth/getKeys');
         const list = document.querySelector('#list');
         const creds = html`${res.credentials.length > 0 ? res.credentials.map(cred => html`
+
           <div class="mdc-card credential">
             <span class="mdc-typography mdc-typography--body2">${cred.credId}</span>
             <pre class="public-key">${cred.publicKey}</pre>
+            <pre class="created">${cred.created}</pre>
             <div class="mdc-card__actions">
               <mwc-button id="${cred.credId}" @click="${removeCredential}" raised>Remove</mwc-button>
             </div>

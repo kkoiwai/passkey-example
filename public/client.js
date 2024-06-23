@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  */
-export const _fetch = async (path, payload = '') => {
+export const _fetch = async (path, payload = "") => {
   const headers = {
-    'X-Requested-With': 'XMLHttpRequest',
+    "X-Requested-With": "XMLHttpRequest",
   };
   if (payload && !(payload instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+    headers["Content-Type"] = "application/json";
     payload = JSON.stringify(payload);
   }
   const res = await fetch(path, {
-    method: 'POST',
-    credentials: 'same-origin',
+    method: "POST",
+    credentials: "same-origin",
     headers: headers,
     body: payload,
   });
@@ -39,15 +39,8 @@ export const _fetch = async (path, payload = '') => {
 };
 
 export const registerCredential = async () => {
-  const opts = {
-    attestation: 'none',
-    authenticatorSelection: {
-      authenticatorAttachment: 'platform',
-      userVerification: 'required',
-      requireResidentKey: false
-    }
-  };
-  const options = await _fetch('/auth/registerRequest', opts);
+  const opts = {};
+  const options = await _fetch("/auth/registerRequest", opts);
 
   options.user.id = base64url.decode(options.user.id);
   options.challenge = base64url.decode(options.challenge);
@@ -68,35 +61,33 @@ export const registerCredential = async () => {
   credential.type = cred.type;
 
   if (cred.response) {
-    const clientDataJSON =
-      base64url.encode(cred.response.clientDataJSON);
-    const attestationObject =
-      base64url.encode(cred.response.attestationObject);
+    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
+    const attestationObject = base64url.encode(cred.response.attestationObject);
     credential.response = {
       clientDataJSON,
       attestationObject,
     };
   }
 
-  localStorage.setItem(`credId`, credential.id);
-
-  return await _fetch('/auth/registerResponse', credential);
+  return await _fetch("/auth/registerResponse", credential);
 };
 
-export const authenticate = async () => {
-  const opts = {};
+export const authenticate = async (username) => {
+  const opts = {
+    extensions: {},
+  };
 
-  let url = '/auth/signinRequest';
-  const credId = localStorage.getItem(`credId`);
-  if (credId) {
-    url += `?credId=${encodeURIComponent(credId)}`;
+  let url = "/auth/signinRequest";
+  
+  if(username){
+    url = url + "?username="+ username;
   }
 
   const options = await _fetch(url, opts);
 
   if (options.allowCredentials.length === 0) {
-    console.info('No registered credentials found.');
-    return Promise.resolve(null);
+    // console.info("No registered credentials found.");
+    // return Promise.resolve(null);
   }
 
   options.challenge = base64url.decode(options.challenge);
@@ -109,20 +100,17 @@ export const authenticate = async () => {
     publicKey: options,
   });
 
+
   const credential = {};
   credential.id = cred.id;
   credential.type = cred.type;
   credential.rawId = base64url.encode(cred.rawId);
 
   if (cred.response) {
-    const clientDataJSON =
-      base64url.encode(cred.response.clientDataJSON);
-    const authenticatorData =
-      base64url.encode(cred.response.authenticatorData);
-    const signature =
-      base64url.encode(cred.response.signature);
-    const userHandle =
-      base64url.encode(cred.response.userHandle);
+    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
+    const authenticatorData = base64url.encode(cred.response.authenticatorData);
+    const signature = base64url.encode(cred.response.signature);
+    const userHandle = base64url.encode(cred.response.userHandle);
     credential.response = {
       clientDataJSON,
       authenticatorData,
@@ -135,6 +123,124 @@ export const authenticate = async () => {
 };
 
 export const unregisterCredential = async (credId) => {
-  localStorage.removeItem('credId');
   return _fetch(`/auth/removeKey?credId=${encodeURIComponent(credId)}`);
 };
+
+export const deleteUser = async (username) => {
+  const ops = {
+    username:username
+  }
+  return await _fetch(`/auth/deleteuser`,ops);
+};
+
+export const createUser = async (username,password) => {
+  const rand = new Uint8Array(32);
+  self.crypto.getRandomValues(rand);
+  console.log(rand)
+  const salt = base64url.encode(rand)
+  console.log(salt)
+  
+  var hashedPassword
+  if(password){
+    hashedPassword = await hashPassword(password,salt);
+  }
+  
+  const ops = {
+    username:username,
+    password:hashedPassword,
+    salt:salt
+  }
+  console.log(JSON.stringify(ops))
+  return await _fetch(`/auth/createuser`,ops);
+};
+
+
+
+export const passwordAuth = async (username,password) => {
+  const ops = {
+    username:username
+  }
+  const res = await _fetch(`/auth/getsalt`,ops)
+
+  const salt = res.salt
+  const hashedPassword = await hashPassword(password,salt);
+  
+  const ops2 = {
+    username:username,
+    password:hashedPassword,
+  }
+  console.log(JSON.stringify(ops2))
+  return await _fetch(`/auth/password`,ops2);
+};
+
+
+// This function hashes password before sending to the server so that the server won't handle raw passwords.
+export const hashPassword = async (password, salt) => {
+  if(!password){throw "enter password"}
+  if(!salt){throw "empty salt"}
+  
+  const uint8password  = new Uint8Array(new TextEncoder().encode(password));
+  const uint8salt = new Uint8Array(base64url.decode(salt));
+  const input = new Uint8Array(uint8password.byteLength + uint8salt.byteLength);
+  input.set(uint8password);
+  input.set(uint8salt,uint8password.byteLength);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', input));
+  return base64url.encode(digest);
+};
+
+export const authenticateWithConditionalUi = async () => {
+  
+  // Availability of `window.PublicKeyCredential` means WebAuthn is usable.  
+  if (window.PublicKeyCredential &&  
+      PublicKeyCredential.isConditionalMediationAvailable) {  
+    // Check if conditional mediation is available.  
+    const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();  
+    if (!isCMA) {  
+      console.error("isConditionalMediationAvailable is false or null");
+      return;  
+    }  
+  }else{
+    console.error("window.PublicKeyCredential is false or null");
+    return;
+  }
+  
+  const opts = {
+    extensions: {},
+  };
+
+  let url = "/auth/signinRequest";
+
+  const options = await _fetch(url, opts);
+
+  options.challenge = base64url.decode(options.challenge);
+
+
+  const cred = await navigator.credentials.get({
+    mediation: "conditional",
+    publicKey: options,
+  });
+
+  const credential = {};
+  credential.id = cred.id;
+  credential.type = cred.type;
+  credential.rawId = base64url.encode(cred.rawId);
+
+
+  if (cred.response) {
+    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
+    const authenticatorData = base64url.encode(cred.response.authenticatorData);
+    const signature = base64url.encode(cred.response.signature);
+    const userHandle = base64url.encode(cred.response.userHandle);
+    
+    credential.response = {
+      clientDataJSON,
+      authenticatorData,
+      signature,
+      userHandle,
+    };
+  }
+
+  return await _fetch(`/auth/signinResponse`, credential);
+
+};
+

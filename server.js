@@ -13,6 +13,26 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * ======================================================================
+ * The follwing License applies to the modifications or "Derivative Works" 
+ * made to the original Works.
+ * To see what constitutes the Derivative Works, please refer to the repository's commit log.
+ * https://github.com/kkoiwai/codelab-fido2/
+ *
+ * Copyright 2024 Kosuke Koiwai All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
  */
 
 // init project
@@ -66,11 +86,13 @@ app.get('/', (req, res) => {
     res.redirect(307, '/reauth');
     return;
   }
-  // If user is not signed in, show `index.html` with id/password form.
+  // If user is not signed in, show `index.html`.
   res.render('index.html');
 });
 
 app.get('/home', (req, res) => {
+  console.log("/home")
+  console.log(JSON.stringify(req.session));
   if (!req.session.username || req.session['signed-in'] != 'yes') {
     // If user is not signed in, redirect to `/`.
     res.redirect(307, '/');
@@ -87,9 +109,13 @@ app.get('/reauth', (req, res) => {
     return;
   }
   // Show `reauth.html`.
-  // User is supposed to enter a password (which will be ignored)
+  // User is supposed to enter a password
   // Make XHR POST to `/signin`
   res.render('reauth.html', { username: username });
+});
+
+app.get('/signup', (req, res) => {
+  res.render('signup.html', {  });
 });
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
@@ -116,6 +142,23 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
     });
   }
   res.json(assetlinks);
+});
+
+
+app.get('/.well-known/apple-app-site-association', (req, res) => {
+
+  var aasa = {};
+
+  if (process.env.IOS_APPID) {
+    aasa = 
+      {
+           webcredentials:
+            {
+              apps: [ process.env.IOS_APPID ]
+            }
+      };
+  }
+  res.json(aasa);
 });
 
 app.use('/auth', auth);

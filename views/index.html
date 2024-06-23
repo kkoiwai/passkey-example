@@ -16,49 +16,159 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>WebAuthn Codelab</title>
-    <meta name="description" content="WebAuthn Codelab">
-    <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/bundle.css">
-    <link rel="stylesheet" href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css">
+    <title>Passkey Demo</title>
+    <meta name="description" content="Passkey Demo" />
+    <link
+      id="favicon"
+      rel="icon"
+      href="https://glitch.com/edit/favicon-app.ico"
+      type="image/x-icon"
+    />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="/bundle.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+
+    <script src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
     <script src="components-bundle.js"></script>
   </head>
   <body class="mdc-typography">
     <mwc-top-app-bar-fixed>
-      <span slot="title">WebAuthn codelab</span>
+      <span slot="title">Passkey Demo</span>
     </mwc-top-app-bar-fixed>
     <main class="content">
-      <h2>
-        Login with a random username
-      </h2>
-      <form id="form" method="POST" action="/auth/username" >
+      <h2>Login with a passkey or password</h2>
+      <form id="form" method="POST" action="/auth/username">
         <div class="mdc-text-field mdc-text-field--filled">
           <span class="mdc-text-field__ripple"></span>
           <label class="mdc-floating-label" id="username-label">username</label>
-          <input type="text" class="mdc-text-field__input" aria-labelledby="username-label" name="username" />
+          <input
+            type="text"
+            class="mdc-text-field__input"
+            aria-labelledby="username-label"
+            name="username"
+            autocomplete="username webauthn"
+          />
           <span class="mdc-line-ripple"></span>
         </div>
-        <input type="submit" class="mdc-button mdc-button--raised" value="Next" />
+        <input
+          type="submit"
+          class="mdc-button mdc-button--raised"
+          value="Sign in"
+        />
       </form>
+
+      <br />
+      <hr />
+      <h2>Sign up with a random username</h2>
+      <mwc-button raised><a href="/signup">Sign up</a></mwc-button>
+      <br />
+      <hr />
+
+      <h2>Forgot password or lost paskeys?</h2>
+      <mwc-button icon="delete" raised
+        ><a id="deletebutton">Delete</a></mwc-button
+      >
+      <p class="instructions">
+        For simplicity, this example allows anyone to delete user just by the
+        username. Production implementation should provide the functionality to recover
+        accounts.
+      </p>
+      <br />
+      <hr />
+
+      <p class="instructions">
+        This demo site is modified from Google's original
+        <a
+          href="https://codelabs.developers.google.com/codelabs/webauthn-reauth/"
+          >WebAuthn codelab</a
+        >.
+      </p>
+      <p class="instructions">
+        Please refer to the <a
+          href="https://github.com/kkoiwai/codelab-fido2/">Github repo</a> for what modifications have been made.
+      </p>
+
       <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
       <script type="module">
-        new mdc.textField.MDCTextField(document.querySelector('.mdc-text-field'));
-        import { _fetch } from '/client.js';
-        const form = document.querySelector('#form');
-        form.addEventListener('submit', e => {
+        new mdc.textField.MDCTextField(
+          document.querySelector(".mdc-text-field")
+        );
+        import {
+          _fetch,
+          authenticate,
+          authenticateWithConditionalUi,
+          deleteUser,
+        } from "/client.js";
+
+        const form = document.querySelector("#form");
+        form.addEventListener("submit", (e) => {
           e.preventDefault();
           const form = new FormData(e.target);
           const cred = {};
-          form.forEach((v, k) => cred[k] = v);
+          form.forEach((v, k) => (cred[k] = v));
           _fetch(e.target.action, cred)
-          .then(user => {
-            location.href = '/reauth';
-          }).catch(e => {
+            .then((user) => {
+              location.href = "/reauth";
+            })
+            .catch((e) => {
+              alert(e);
+            });
+        });
+
+        authenticateWithConditionalUi()
+          .then((value) => {
+            console.log("authenticateWithConditionalUi().then()");
+            console.log(value);
+            if (value) {
+              location.href = "/home";
+            }
+          })
+          .catch((e) => {
             alert(e);
           });
+
+        const deletebutton = document.querySelector("#deletebutton");
+        deletebutton.addEventListener("click", (e) => {
+          var defaultusername;
+          // autofill a username saved in localStorage
+          if (localStorage.getItem("usermames")) {
+            const usernames = JSON.parse(localStorage.getItem("usermames"));
+            defaultusername = usernames[0];
+          }
+          var username = prompt("Enter username to delete : ", defaultusername);
+          if (!username) {
+            return;
+          }
+          var confirmToDelete = confirm("Are you sure to delete user?");
+          if (confirmToDelete) {
+            // delete the username saved in localStorage
+            if (localStorage.getItem("usermames")) {
+              const usernames = JSON.parse(localStorage.getItem("usermames"));
+              const index = usernames.indexOf(username);
+              if (index > -1) {
+                usernames.splice(index, 1);
+              }
+              localStorage.setItem("usermames", JSON.stringify(usernames));
+            }
+
+            deleteUser(username)
+              .then((value) => {
+                alert("user deleted.");
+              })
+              .catch((e) => {
+                alert(e);
+              });
+          }
         });
       </script>
     </main>
