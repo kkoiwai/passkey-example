@@ -15,10 +15,10 @@
  * limitations under the License
  *
  * ======================================================================
- * The follwing License applies to the modifications or "Derivative Works" 
+ * The following License applies to the modifications or "Derivative Works" 
  * made to the original Works.
  * To see what constitutes the Derivative Works, please refer to the repository's commit log.
- * https://github.com/kkoiwai/codelab-fido2/
+ * https://github.com/kkoiwai/passkey-example/
  *
  * Copyright 2024 Kosuke Koiwai All rights reserved.
  *
@@ -53,7 +53,7 @@ app.use(session({
   resave: true,
   saveUninitialized: false,
   proxy: true,
-  cookie:{
+  cookie: {
     httpOnly: true,
     secure: true,
     sameSite: 'none'
@@ -115,7 +115,7 @@ app.get('/reauth', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
-  res.render('signup.html', {  });
+  res.render('signup.html', {});
 });
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
@@ -150,13 +150,13 @@ app.get('/.well-known/apple-app-site-association', (req, res) => {
   var aasa = {};
 
   if (process.env.IOS_APPID) {
-    aasa = 
+    aasa =
+    {
+      webcredentials:
       {
-           webcredentials:
-            {
-              apps: [ process.env.IOS_APPID ]
-            }
-      };
+        apps: [process.env.IOS_APPID]
+      }
+    };
   }
   res.json(aasa);
 });

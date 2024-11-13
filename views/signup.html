@@ -12,130 +12,123 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
+
+ ======================================================================
+ The following License applies to the modifications or "Derivative Works" 
+ made to the original Works.
+ To see what constitutes the Derivative Works, please refer to the repository's commit log.
+ https://github.com/kkoiwai/passkey-example/
+
+ Copyright 2024 Kosuke Koiwai All rights reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ 
 -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Passkey Demo</title>
-    <meta name="description" content="Passkey Demo" />
-    <link
-      id="favicon"
-      rel="icon"
-      href="https://glitch.com/edit/favicon-app.ico"
-      type="image/x-icon"
-    />
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="stylesheet" href="/bundle.css" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-    />
+<head>
+  <title>Passkey Demo</title>
+  <meta name="description" content="Passkey Demo" />
+  <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon" />
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <script src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
-    <script src="components-bundle.js"></script>
-  </head>
-  <body class="mdc-typography">
-    <mwc-top-app-bar-fixed>
-      <span slot="title">Passkey Demo</span>
-    </mwc-top-app-bar-fixed>
-    <main class="content">
-      <h2>Sign up with a passkey</h2>
-      <form id="form" method="POST" action="/auth/signup">
-        <div class="mdc-text-field mdc-text-field--filled">
-          <span class="mdc-text-field__ripple"></span>
-          <label class="mdc-floating-label" id="username-label">username</label>
-          <input
-            type="text"
-            class="mdc-text-field__input"
-            aria-labelledby="username-label"
-            name="username"
-          />
-          <span class="mdc-line-ripple"></span>
-        </div>
+  <link rel="stylesheet" href="/bundle.css" />
+  <link rel="stylesheet" href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 
-        <div class="mdc-text-field mdc-text-field--filled">
-          <span class="mdc-text-field__ripple"></span>
-          <label class="mdc-floating-label" id="password-label"
-            >password (optional)</label
-          >
-          <input
-            type="password"
-            class="mdc-text-field__input"
-            aria-labelledby="password-label"
-            name="password"
-          />
-          <span class="mdc-line-ripple"></span>
-        </div>
-        <input
-          type="submit"
-          class="mdc-button mdc-button--raised"
-          value="Sign up"
-        />
-        <input
-          type="button"
-          class="mdc-button"
-          value="cancel"
-          onclick="location.href='/auth/signout'"
-        />
-      </form>
-      
-      <p class="instructions">
-        Your password will be hashed with a random salt before being sent to server.
-      </p>
-      
-      <p class="instructions">
-        If you fail to register passkey, your account will still be created.
-      </p>
+  <script
+    src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
+  <script src="components-bundle.js"></script>
+</head>
 
-      <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-      <script type="module">
-        document.querySelectorAll(".mdc-text-field").forEach((el) => {
-          new mdc.textField.MDCTextField(el);
-        });
+<body class="mdc-typography">
+  <mwc-top-app-bar-fixed>
+    <span slot="title">Passkey Demo</span>
+  </mwc-top-app-bar-fixed>
+  <main class="content">
+    <h2>Sign up with a passkey</h2>
+    <form id="form" method="POST" action="/auth/signup">
+      <div class="mdc-text-field mdc-text-field--filled">
+        <span class="mdc-text-field__ripple"></span>
+        <label class="mdc-floating-label" id="username-label">username</label>
+        <input type="text" class="mdc-text-field__input" aria-labelledby="username-label" name="username" />
+        <span class="mdc-line-ripple"></span>
+      </div>
 
-        import { _fetch, createUser, registerCredential } from "/client.js";
+      <div class="mdc-text-field mdc-text-field--filled">
+        <span class="mdc-text-field__ripple"></span>
+        <label class="mdc-floating-label" id="password-label">password (optional)</label>
+        <input type="password" class="mdc-text-field__input" aria-labelledby="password-label" name="password" />
+        <span class="mdc-line-ripple"></span>
+      </div>
+      <input type="submit" class="mdc-button mdc-button--raised" value="Sign up" />
+      <input type="button" class="mdc-button" value="cancel" onclick="location.href='/auth/signout'" />
+    </form>
 
-        const form = document.querySelector("#form");
-        form.addEventListener("submit", (e) => {
-          e.preventDefault();
-          const form = new FormData(e.target);
-          const username = form.get("username");
-          const password = form.get("password");
-          
-          createUser(username, password)
-            .then((result) => {
-            
-              // Save username in localStorage so that it can be easily deleted later.
-              if (localStorage.getItem("usermames")) {
-                const usernames = JSON.parse(localStorage.getItem("usermames"));
-                usernames.push(username);
-                localStorage.setItem("usermames", JSON.stringify(usernames));
-              } else {
-                const usernames = [username];
-                localStorage.setItem("usermames", JSON.stringify(usernames));
-              }
+    <p class="instructions">
+      Your password will be hashed with a random salt before being sent to server.
+    </p>
 
-              // register Passkey
-              registerCredential().then((user) => {
-                location.href = "/home";
-              })
+    <p class="instructions">
+      If you fail to register passkey, your account will still be created.
+    </p>
+
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <script type="module">
+      document.querySelectorAll(".mdc-text-field").forEach((el) => {
+        new mdc.textField.MDCTextField(el);
+      });
+
+      import { _fetch, createUser, registerCredential } from "/client.js";
+
+      const form = document.querySelector("#form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        const username = form.get("username");
+        const password = form.get("password");
+
+        createUser(username, password)
+          .then((result) => {
+
+            // Save username in localStorage so that it can be easily deleted later.
+            if (localStorage.getItem("usermames")) {
+              const usernames = JSON.parse(localStorage.getItem("usermames"));
+              usernames.push(username);
+              localStorage.setItem("usermames", JSON.stringify(usernames));
+            } else {
+              const usernames = [username];
+              localStorage.setItem("usermames", JSON.stringify(usernames));
+            }
+
+            // register Passkey
+            registerCredential().then((user) => {
+              location.href = "/home";
+            })
               .catch((e) => {
                 // go to home even if passkey registration fails
                 location.href = "/home";
               });
-            })
-            .catch((e) => {
-              alert(e);
-            });
-        });
-      </script>
-    </main>
-  </body>
+          })
+          .catch((e) => {
+            alert(e);
+          });
+      });
+    </script>
+  </main>
+</body>
+
 </html>

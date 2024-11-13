@@ -12,76 +12,100 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
+
+ ======================================================================
+ The following License applies to the modifications or "Derivative Works" 
+ made to the original Works.
+ To see what constitutes the Derivative Works, please refer to the repository's commit log.
+ https://github.com/kkoiwai/passkey-example/
+
+ Copyright 2024 Kosuke Koiwai All rights reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Passkey Demo</title>
-    <meta name="description" content="Passkey Demo">
-    <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- import the webpage's stylesheet -->
-    <link rel="stylesheet" href="/bundle.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
-    <script src="components-bundle.js"></script>
-  </head>
-  <body class="mdc-typography">
-    <mwc-top-app-bar-fixed>
-      <span slot="title">Passkey Demo</span>
-    </mwc-top-app-bar-fixed>
+<head>
+  <title>Passkey Demo</title>
+  <meta name="description" content="Passkey Demo">
+  <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <main class="content">
-      <h2>
-        Welcome, {{username}}!
-      </h2>
-      <p class="instructions">
-        Click on "Add a credential" to register new passkey.
-      </p>
-      <p id="uvpa_unavailable" class="hidden">
-        This device does not support User Verifying Platform Authenticator. You can't register a passkey.
-      </p>
-      <h3 class="mdc-typography mdc-typography--headline6">
-        Your registered passkeys:
-      </h3>
-      <section>
-        <div id="list"></div>
-      </section>
-      <mwc-button id="register" class="hidden" icon="fingerprint" raised>Add a credential</mwc-button>
-      <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
-    </main>
-    <script type="module">
-      import { _fetch, registerCredential, unregisterCredential } from '/client.js';
-      import { html, render } from 'https://unpkg.com/lit-html@1.0.0/lit-html.js?module';
+  <!-- import the webpage's stylesheet -->
+  <link rel="stylesheet" href="/bundle.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css">
+  <script
+    src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
+  <script src="components-bundle.js"></script>
+</head>
 
-      const register = document.querySelector('#register');
-      register.classList.remove('hidden');
+<body class="mdc-typography">
+  <mwc-top-app-bar-fixed>
+    <span slot="title">Passkey Demo</span>
+  </mwc-top-app-bar-fixed>
 
-      // if (window.PublicKeyCredential) {
-      //   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-      //   .then(uvpaa => {
-      //     if (uvpaa) {
-      //       register.classList.remove('hidden');
-      //     } else {
-      //       document
-      //         .querySelector('#uvpa_unavailable')
-      //         .classList.remove('hidden');
-      //     }
-      //   });        
-      // } else {
-      //   document
-      //     .querySelector('#uvpa_unavailable')
-      //     .classList.remove('hidden');
-      // }
+  <main class="content">
+    <h2>
+      Welcome, {{username}}!
+    </h2>
+    <p class="instructions">
+      Click on "Add a credential" to register new passkey.
+    </p>
+    <p id="uvpa_unavailable" class="hidden">
+      This device does not support User Verifying Platform Authenticator. You can't register a passkey.
+    </p>
+    <h3 class="mdc-typography mdc-typography--headline6">
+      Your registered passkeys:
+    </h3>
+    <section>
+      <div id="list"></div>
+    </section>
+    <mwc-button id="register" class="hidden" icon="fingerprint" raised>Add a credential</mwc-button>
+    <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
+  </main>
+  <script type="module">
+    import { _fetch, registerCredential, unregisterCredential } from '/client.js';
+    import { html, render } from 'https://unpkg.com/lit-html@1.0.0/lit-html.js?module';
 
-      const getCredentials = async () => {
-        const res = await _fetch('/auth/getKeys');
-        const list = document.querySelector('#list');
-        const creds = html`${res.credentials.length > 0 ? res.credentials.map(cred => html`
+    const register = document.querySelector('#register');
+    register.classList.remove('hidden');
+
+    // if (window.PublicKeyCredential) {
+    //   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+    //   .then(uvpaa => {
+    //     if (uvpaa) {
+    //       register.classList.remove('hidden');
+    //     } else {
+    //       document
+    //         .querySelector('#uvpa_unavailable')
+    //         .classList.remove('hidden');
+    //     }
+    //   });        
+    // } else {
+    //   document
+    //     .querySelector('#uvpa_unavailable')
+    //     .classList.remove('hidden');
+    // }
+
+    const getCredentials = async () => {
+      const res = await _fetch('/auth/getKeys');
+      const list = document.querySelector('#list');
+      const creds = html`${res.credentials.length > 0 ? res.credentials.map(cred => html`
 
           <div class="mdc-card credential">
             <span class="mdc-typography mdc-typography--body2">${cred.credId}</span>
@@ -93,25 +117,26 @@
           </div>`) : html`
           <p>No credentials found.</p>
           `}`;
-        render(creds, list);
-      };
+      render(creds, list);
+    };
 
-      getCredentials();
+    getCredentials();
 
-      const removeCredential = async e => {
-        try {
-          await unregisterCredential(e.target.id);
-          getCredentials();
-        } catch (e) {
-          alert(e);
-        }
-      };
+    const removeCredential = async e => {
+      try {
+        await unregisterCredential(e.target.id);
+        getCredentials();
+      } catch (e) {
+        alert(e);
+      }
+    };
 
-      register.addEventListener('click', e => {
-        registerCredential().then(user => {
-          getCredentials();
-        }).catch(e => alert(e));
-      });
-    </script>
-  </body>
+    register.addEventListener('click', e => {
+      registerCredential().then(user => {
+        getCredentials();
+      }).catch(e => alert(e));
+    });
+  </script>
+</body>
+
 </html>

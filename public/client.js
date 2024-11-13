@@ -13,7 +13,27 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ * ======================================================================
+ * The following License applies to the modifications or "Derivative Works" 
+ * made to the original Works.
+ * To see what constitutes the Derivative Works, please refer to the repository's commit log.
+ * https://github.com/kkoiwai/passkey-example/
+ *
+ * Copyright 2024 Kosuke Koiwai All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
  */
+
 export const _fetch = async (path, payload = "") => {
   const headers = {
     "X-Requested-With": "XMLHttpRequest",
@@ -34,6 +54,13 @@ export const _fetch = async (path, payload = "") => {
   } else {
     // Server authentication failed
     const result = await res.json();
+    if (result.unknownCredId && result.rpID && PublicKeyCredential && PublicKeyCredential.signalUnknownCredential) {
+      await PublicKeyCredential.signalUnknownCredential({
+        rpId: result.rpID,
+        credentialId: result.unknownCredId,
+      })
+    }
+
     throw result.error;
   }
 };
@@ -78,9 +105,9 @@ export const authenticate = async (username) => {
   };
 
   let url = "/auth/signinRequest";
-  
-  if(username){
-    url = url + "?username="+ username;
+
+  if (username) {
+    url = url + "?username=" + username;
   }
 
   const options = await _fetch(url, opts);
@@ -123,87 +150,87 @@ export const authenticate = async (username) => {
 };
 
 export const unregisterCredential = async (credId) => {
-  return _fetch(`/auth/removeKey?credId=${encodeURIComponent(credId)}`);
+  await _fetch(`/auth/removeKey?credId=${encodeURIComponent(credId)}`);
 };
 
 export const deleteUser = async (username) => {
   const ops = {
-    username:username
+    username: username
   }
-  return await _fetch(`/auth/deleteuser`,ops);
+  return await _fetch(`/auth/deleteuser`, ops);
 };
 
-export const createUser = async (username,password) => {
+export const createUser = async (username, password) => {
   const rand = new Uint8Array(32);
   self.crypto.getRandomValues(rand);
   console.log(rand)
   const salt = base64url.encode(rand)
   console.log(salt)
-  
+
   var hashedPassword
-  if(password){
-    hashedPassword = await hashPassword(password,salt);
+  if (password) {
+    hashedPassword = await hashPassword(password, salt);
   }
-  
+
   const ops = {
-    username:username,
-    password:hashedPassword,
-    salt:salt
+    username: username,
+    password: hashedPassword,
+    salt: salt
   }
   console.log(JSON.stringify(ops))
-  return await _fetch(`/auth/createuser`,ops);
+  return await _fetch(`/auth/createuser`, ops);
 };
 
 
 
-export const passwordAuth = async (username,password) => {
+export const passwordAuth = async (username, password) => {
   const ops = {
-    username:username
+    username: username
   }
-  const res = await _fetch(`/auth/getsalt`,ops)
+  const res = await _fetch(`/auth/getsalt`, ops)
 
   const salt = res.salt
-  const hashedPassword = await hashPassword(password,salt);
-  
+  const hashedPassword = await hashPassword(password, salt);
+
   const ops2 = {
-    username:username,
-    password:hashedPassword,
+    username: username,
+    password: hashedPassword,
   }
   console.log(JSON.stringify(ops2))
-  return await _fetch(`/auth/password`,ops2);
+  return await _fetch(`/auth/password`, ops2);
 };
 
 
 // This function hashes password before sending to the server so that the server won't handle raw passwords.
 export const hashPassword = async (password, salt) => {
-  if(!password){throw "enter password"}
-  if(!salt){throw "empty salt"}
-  
-  const uint8password  = new Uint8Array(new TextEncoder().encode(password));
+  if (!password) { throw "enter password" }
+  if (!salt) { throw "empty salt" }
+
+  const uint8password = new Uint8Array(new TextEncoder().encode(password));
   const uint8salt = new Uint8Array(base64url.decode(salt));
   const input = new Uint8Array(uint8password.byteLength + uint8salt.byteLength);
   input.set(uint8password);
-  input.set(uint8salt,uint8password.byteLength);
+  input.set(uint8salt, uint8password.byteLength);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', input));
   return base64url.encode(digest);
 };
 
-export const authenticateWithConditionalUi = async () => {
-  
+export const authenticateWithConditionalUi = async (abortSignal) => {
+
   // Availability of `window.PublicKeyCredential` means WebAuthn is usable.  
-  if (window.PublicKeyCredential &&  
-      PublicKeyCredential.isConditionalMediationAvailable) {  
+  if (window.PublicKeyCredential &&
+    PublicKeyCredential.isConditionalMediationAvailable) {
     // Check if conditional mediation is available.  
-    const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();  
-    if (!isCMA) {  
+    const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
+    if (!isCMA) {
       console.error("isConditionalMediationAvailable is false or null");
-      return;  
-    }  
-  }else{
+      return;
+    }
+  } else {
     console.error("window.PublicKeyCredential is false or null");
     return;
   }
-  
+
   const opts = {
     extensions: {},
   };
@@ -218,6 +245,7 @@ export const authenticateWithConditionalUi = async () => {
   const cred = await navigator.credentials.get({
     mediation: "conditional",
     publicKey: options,
+    signal: abortSignal
   });
 
   const credential = {};
@@ -231,7 +259,7 @@ export const authenticateWithConditionalUi = async () => {
     const authenticatorData = base64url.encode(cred.response.authenticatorData);
     const signature = base64url.encode(cred.response.signature);
     const userHandle = base64url.encode(cred.response.userHandle);
-    
+
     credential.response = {
       clientDataJSON,
       authenticatorData,

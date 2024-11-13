@@ -1,4 +1,4 @@
-# WebAuthn/Paskey Codelab
+# WebAuthn/Passkey Codelab
 
 Webブラウザ、iOS(Swift)アプリ、Androidアプリでパスキー（WebAuthn）による認証を行うサンプル実装です。
 
@@ -31,7 +31,7 @@ the License.
 ```
 
 
-The follwing License applies to the modifications or "Derivative Works" made to the original Works.
+The following License applies to the modifications or "Derivative Works" made to the original Works.
 To see what constitutes the Derivative Works, please refer to the repository's commit log.
 https://github.com/kkoiwai/passkey-example/
 
