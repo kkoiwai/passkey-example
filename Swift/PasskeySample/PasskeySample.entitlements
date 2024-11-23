@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>webcredentials:prickle-first-cress.glitch.me?mode=developer</string>
+		<string>webcredentials:passkey-example.glitch.me?mode=developer</string>
 	</array>
 </dict>
 </plist>
