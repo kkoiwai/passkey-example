@@ -32,8 +32,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
+ * limitations under the License
  */
 
 const express = require("express");
@@ -139,7 +138,7 @@ router.post("/password", (req, res) => {
   console.log(
     "password request: " + (req.body ? JSON.stringify(req.body) : "")
   );
-
+  
   if (!req.body.username) {
     res.status(401).json({ error: "Enter username first." });
     return;
@@ -157,14 +156,14 @@ router.post("/password", (req, res) => {
   }
 
   const password = db.get("passwords").find({ userId: user.id }).value();
-
+  
   if (!password) {
     res.status(401).json({ error: "Password not registered." });
     return;
   }
-
+  
   if (password && password.password == req.body.password) {
-
+    
     req.session.username = user.username;
     req.session["signed-in"] = "yes";
     res.json(user);
@@ -184,7 +183,7 @@ router.get("/signout", (req, res) => {
 router.post("/signout", (req, res) => {
   // Remove the session
   req.session.destroy();
-  res.json({ "signout": "success" });
+  res.json({"signout":"success"});
 });
 
 /**
@@ -213,7 +212,7 @@ router.post("/getKeys", csrfCheck, sessionCheck, (req, res) => {
   const user = db.get("users").find({ username: req.session.username }).value();
   const credentials = db.get("passkeys").filter({ passkey_user_id: user.id });
 
-  res.json({ rpID: process.env.HOSTNAME, user_id: user.id, credentials: credentials } || {});
+  res.json({rpID: process.env.HOSTNAME,user_id:user.id,credentials:credentials} || {});
 });
 
 /**
@@ -228,10 +227,10 @@ router.post("/removeKey", csrfCheck, sessionCheck, (req, res) => {
   const credId = req.query.credId;
   const username = req.session.username;
   const user = db.get("users").find({ username: username }).value();
-
+  
   db.get("passkeys")
     .remove({ passkey_user_id: user.id, credId: credId })
-    .write();
+    .write(); 
 
   res.json({});
 });
@@ -280,19 +279,19 @@ router.post("/registerRequest", csrfCheck, sessionCheck, async (req, res) => {
   const excludeCredentials = [];
   try {
     // if (credentials.length > 0) {
-    for (let cred of credentials) {
-      excludeCredentials.push({
-        id: cred.credId,
-        type: "public-key",
-        transports: ["internal"],
-      });
-
-
-      console.log("excludeCredentials" + JSON.stringify(excludeCredentials))
+      for (let cred of credentials) {
+        excludeCredentials.push({
+          id: cred.credId,
+          type: "public-key",
+          transports: ["internal"],
+        });
+        
+    
+  console.log("excludeCredentials" + JSON.stringify(excludeCredentials))
       // }
     }
-
-    console.log("excludeCredentials" + JSON.stringify(excludeCredentials))
+    
+  console.log("excludeCredentials" + JSON.stringify(excludeCredentials))
 
     // const pubKeyCredParams = [];
     // // const params = [-7, -35, -36, -257, -258, -259, -37, -38, -39, -8];
@@ -315,7 +314,7 @@ router.post("/registerRequest", csrfCheck, sessionCheck, async (req, res) => {
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         requireResidentKey: true,
-        userVerification: "required",
+        userVerification: "preferred",
       },
       supportedAlgorithmIDs: [-7, -257],
     });
@@ -362,12 +361,18 @@ router.post("/registerResponse", csrfCheck, sessionCheck, async (req, res) => {
 
   try {
     const { body } = req;
+    
+    let credential = body;
+    if(req.query.conditional){
+      credential = forceUPflag(credential);
+    }
 
     const verification = await fido2.verifyAttestationResponse({
-      credential: body,
+      credential,
       expectedChallenge,
       expectedOrigin,
       expectedRPID,
+      // requireUserVerification : false
     });
     console.log("registering verification: " + JSON.stringify(verification));
 
@@ -383,7 +388,7 @@ router.post("/registerResponse", csrfCheck, sessionCheck, async (req, res) => {
     console.log("registering a passkey for a user: " + JSON.stringify(user));
     const date = new Date();
     const timestamp = date.toISOString();
-
+    
     const existingCred = db
       .get("passkeys")
       .find({ credId: base64CredentialID })
@@ -436,10 +441,10 @@ router.post("/signinRequest", csrfCheck, async (req, res) => {
     "signinRequest request: " + (req.body ? JSON.stringify(req.body) : "")
   );
   console.log(JSON.stringify(req.session));
-
+  
   try {
     const username = req.query.username ? req.query.username.toLowerCase() : ""
-
+    
     const user = db
       .get("users")
       .find({ username: req.session.username || username })
@@ -562,7 +567,7 @@ router.post("/signinResponse", csrfCheck, async (req, res) => {
     console.error(e.message);
     console.error(e.stack);
     delete req.session.challenge;
-    res.status(400).json({ error: e, unknownCredId: req.body.id, rpID: process.env.HOSTNAME });
+    res.status(400).json({ error: e, unknownCredId: req.body.id, rpID: process.env.HOSTNAME  });
   }
 });
 
@@ -607,16 +612,16 @@ router.post("/deleteuser", (req, res) => {
   console.log(
     "deleteuser request: " + (req.body ? JSON.stringify(req.body) : "")
   );
-
-  if (!req.body.username) {
+  
+  if(!req.body.username){
     res.status(400).json({ error: "Enter username." });
   }
 
   const username = req.body.username.toLowerCase();
   const user = db.get("users").find({ username: username }).value();
   console.log(
-    "delete user: " + JSON.stringify(user)
-  );
+          "delete user: " + JSON.stringify(user) 
+        );
 
   if (user) {
     db.get("passkeys").remove({ passkey_user_id: user.id }).write();
@@ -647,16 +652,39 @@ router.post("/getsalt", (req, res) => {
   const user = db.get("users").find({ username: username }).value();
   if (!user) {
     // if user is not found, then new user is being created, so return new salt
-    res.json({ salt: base64url.encode(crypto.randomBytes(32)) });
+    res.json({ salt:base64url.encode(crypto.randomBytes(32))});
   } else {
     // if user is found, find salt in db and return.
     const password = db.get("passwords").find({ userId: user.id }).value();
     if (password) {
       res.json({ salt: password.salt });
     } else {
-      res.json({ salt: base64url.encode(crypto.randomBytes(32)) });
+      res.json({ salt:base64url.encode(crypto.randomBytes(32))});
     }
   }
 });
+
+// Don't try this at home! 良い子は絶対に真似しないでください。
+// UP flag is 0 when automatic passkey upgrade (registration) is conducted.
+// some old WebAuthn libraries may not accept UP=0, so this function force changees the UP to 1.
+function forceUPflag(cred){
+  console.log("++++++++forceUP++++++++++")
+  // console.log(JSON.stringify(cred,null,2));
+  if(cred.response.attestationObject.startsWith("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0")){
+    // when the first part of CBOR matches ("fmt":"none","attStmt":{},"authData")
+    const attObj = base64url.toBuffer(cred.response.attestationObject);
+    let view = new Uint8Array(attObj); 
+    let flag = view[62];
+    console.log(flag.toString(2).padStart(8, '0'));
+    // console.log(view);
+    flag = flag | 1 ;// UP flag
+    console.log(flag.toString(2).padStart(8, '0'));
+    view[62] = flag;
+    // console.log(view);
+    cred.response.attestationObject = base64url.encode(view);
+  }
+  // console.log(JSON.stringify(cred,null,2));
+  return cred;
+}
 
 module.exports = router;
