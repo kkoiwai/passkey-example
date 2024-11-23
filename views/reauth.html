@@ -36,95 +36,114 @@
 -->
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <title>Passkey Demo</title>
-  <meta name="description" content="Passkey Demo">
-  <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/bundle.css">
-  <link rel="stylesheet" href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css">
-  <script
-    src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
-  <script src="components-bundle.js"></script>
-</head>
-
-<body class="mdc-typography">
-  <mwc-top-app-bar-fixed>
-    <span slot="title">Passkey Demo</span>
-  </mwc-top-app-bar-fixed>
-  <main class="content">
-    <div id="uvpa_available" class="hidden">
-      <h2>
-        Verify your identity
-      </h2>
-      <div>
-        <mwc-button id="reauth" raised>Authenticate</mwc-button>
+  <head>
+    <title>Passkey Demo</title>
+    <meta name="description" content="Passkey Demo" />
+    <link
+      id="favicon"
+      rel="icon"
+      href="https://glitch.com/edit/favicon-app.ico"
+      type="image/x-icon"
+    />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/bundle.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/gh/herrjemand/Base64URL-ArrayBuffer@latest/lib/base64url-arraybuffer.js"></script>
+    <script src="components-bundle.js"></script>
+  </head>
+  <body class="mdc-typography">
+    <mwc-top-app-bar-fixed>
+      <span slot="title">Passkey Demo</span>
+    </mwc-top-app-bar-fixed>
+    <main class="content">
+      <div id="uvpa_available" class="hidden">
+        <h2>Verify your identity</h2>
+        <div>
+          <mwc-button id="reauth" raised>Authenticate</mwc-button>
+        </div>
+        <div>
+          <mwc-button id="cancel">Sign-in with password</mwc-button>
+        </div>
       </div>
-      <div>
-        <mwc-button id="cancel">Sign-in with password</mwc-button>
-      </div>
-    </div>
-    <form id="form" class="hidden">
-      <h2>
-        Enter a password
-      </h2>
-      <input type="hidden" name="username" value="{{username}}" />
-      <div class="mdc-text-field mdc-text-field--filled">
-        <span class="mdc-text-field__ripple"></span>
-        <label class="mdc-floating-label" id="password-label">password</label>
-        <input type="password" class="mdc-text-field__input" aria-labelledby="password-label" name="password" />
-        <span class="mdc-line-ripple"></span>
-      </div>
-      <input type="submit" class="mdc-button mdc-button--raised" value="Sign-In" />
-    </form>
-    <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
-  </main>
-  <script src="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.js"></script>
-  <script type="module">
-    new mdc.textField.MDCTextField(document.querySelector('.mdc-text-field'));
-    import { _fetch, authenticate, passwordAuth } from '/client.js';
+      <form id="form" class="hidden">
+        <h2>Enter a password</h2>
+        <input type="hidden" name="username" value="{{username}}" />
+        <div class="mdc-text-field mdc-text-field--filled">
+          <span class="mdc-text-field__ripple"></span>
+          <label class="mdc-floating-label" id="password-label">password</label>
+          <input
+            type="password"
+            class="mdc-text-field__input"
+            aria-labelledby="password-label"
+            name="password"
+          />
+          <span class="mdc-line-ripple"></span>
+        </div>
+        <input
+          type="submit"
+          class="mdc-button mdc-button--raised"
+          value="Sign-In"
+        />
+      </form>
+      <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
+    </main>
+    <script src="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.js"></script>
+    <script type="module">
+      new mdc.textField.MDCTextField(document.querySelector(".mdc-text-field"));
+      import { _fetch, authenticate, passwordAuth, registerCredential } from "/client.js";
 
-    document.querySelector('#uvpa_available')
-      .classList.remove('hidden');
+      document.querySelector("#uvpa_available").classList.remove("hidden");
 
-    const cancel = document.querySelector('#cancel');
-    cancel.addEventListener('click', e => {
-      form.classList.remove('hidden');
-      document
-        .querySelector('#uvpa_available')
-        .classList.add('hidden');
-    });
-
-    const button = document.querySelector('#reauth');
-    button.addEventListener('click', e => {
-      authenticate().then(user => {
-        if (user) {
-          location.href = '/home';
-        } else {
-          throw 'User not found.';
-        }
-      }).catch(e => {
-        console.error(e.message || e);
-        alert('Authentication failed. Use password to sign-in.');
-        form.classList.remove('hidden');
-        document.querySelector('#uvpa_available').classList.add('hidden');
+      const cancel = document.querySelector("#cancel");
+      cancel.addEventListener("click", (e) => {
+        form.classList.remove("hidden");
+        document.querySelector("#uvpa_available").classList.add("hidden");
       });
-    });
 
-    const form = document.querySelector('#form');
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const form = new FormData(e.target);
-      passwordAuth(form.get("username"), form.get("password"))
-        .then(user => {
-          location.href = '/home';
-        })
-        .catch(e => alert(e));
-    });
-  </script>
-</body>
+      const button = document.querySelector("#reauth");
+      button.addEventListener("click", (e) => {
+        authenticate()
+          .then((user) => {
+            if (user) {
+              location.href = "/home";
+            } else {
+              throw "User not found.";
+            }
+          })
+          .catch((e) => {
+            console.error(e.message || e);
+            alert("Authentication failed. Use password to sign-in.");
+            form.classList.remove("hidden");
+            document.querySelector("#uvpa_available").classList.add("hidden");
+          });
+      });
 
+      const form = document.querySelector("#form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        passwordAuth(form.get("username"), form.get("password"))
+          .then(async function () {
+          
+            // conditional create / Automatic passkey upgrade
+            if (PublicKeyCredential.getClientCapabilities) {
+              console.log("conditional create");
+              const capabilities =
+                await PublicKeyCredential.getClientCapabilities();
+              if (capabilities.conditionalCreate) {
+                await registerCredential(true).catch((e) => console.log(e));
+              }
+            }
+
+            location.href = "/home";
+          })
+          .catch((e) => alert(e));
+      });
+    </script>
+  </body>
 </html>
