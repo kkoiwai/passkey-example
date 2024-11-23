@@ -29,7 +29,7 @@ class PasskeyService: NSObject, ObservableObject, ASAuthorizationControllerPrese
     @Published var sessionUserName: String = ""
     
     // TODO: domain を自身のものに変更してください。associated domains設定も忘れないこと。
-    let domain = "prickle-first-cress.glitch.me"
+    let domain = "passkey-example.glitch.me"
 
     var authenticationAnchor: ASPresentationAnchor?
     
