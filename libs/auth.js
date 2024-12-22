@@ -458,10 +458,12 @@ router.post("/signinRequest", csrfCheck, async (req, res) => {
     const allowCredentials = [];
     // if user id is specified, fill allowCredentials
     if (user) {
-      const credentials = db
+      const db_creds = db
         .get("passkeys")
         .filter({ passkey_user_id: user.id });
-      if (!credentials || !credentials.length) {
+      
+      const credentials = JSON.parse(JSON.stringify(db_creds));
+      if (!credentials|| !credentials.length) {
         throw "credentials for the user not found.";
       }
       for (let cred of credentials) {

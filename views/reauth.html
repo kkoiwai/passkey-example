@@ -81,6 +81,7 @@
             class="mdc-text-field__input"
             aria-labelledby="password-label"
             name="password"
+            autocomplete="password webauthn"
           />
           <span class="mdc-line-ripple"></span>
         </div>
@@ -95,7 +96,7 @@
     <script src="https://unpkg.com/material-components-web@7.0.0/dist/material-components-web.min.js"></script>
     <script type="module">
       new mdc.textField.MDCTextField(document.querySelector(".mdc-text-field"));
-      import { _fetch, authenticate, passwordAuth, registerCredential } from "/client.js";
+      import { _fetch, authenticate, passwordAuth, registerCredential, reAuthenticateWithConditionalUi} from "/client.js";
 
       document.querySelector("#uvpa_available").classList.remove("hidden");
 
@@ -103,6 +104,17 @@
       cancel.addEventListener("click", (e) => {
         form.classList.remove("hidden");
         document.querySelector("#uvpa_available").classList.add("hidden");
+        reAuthenticateWithConditionalUi("{{username}}")
+          .then((value) => {
+            console.log("reAuthenticateWithConditionalUi().then()");
+            console.log(value);
+            if (value) {
+              location.href = "/home";
+            }
+          })
+          .catch((e) => {
+            console.error(e.message || e);  
+        });
       });
 
       const button = document.querySelector("#reauth");

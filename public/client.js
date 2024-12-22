@@ -275,3 +275,56 @@ export const authenticateWithConditionalUi = async (abortSignal) => {
 
 };
 
+
+export const reAuthenticateWithConditionalUi = async (username) => {
+  const opts = {
+    extensions: {},
+  };
+
+  let url = "/auth/signinRequest";
+  
+  if(username){
+    url = url + "/?username="+ username;
+  }
+
+  const options = await _fetch(url, opts);
+
+  if (options.allowCredentials.length === 0) {
+    // console.info("No registered credentials found.");
+    // return Promise.resolve(null);
+  }
+
+  options.challenge = base64url.decode(options.challenge);
+
+  for (let cred of options.allowCredentials) {
+    cred.id = base64url.decode(cred.id);
+  }
+
+  const cred = await navigator.credentials.get({
+    mediation: "conditional",
+    publicKey: options,
+  });
+
+
+  const credential = {};
+  credential.id = cred.id;
+  credential.type = cred.type;
+  credential.rawId = base64url.encode(cred.rawId);
+
+  if (cred.response) {
+    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
+    const authenticatorData = base64url.encode(cred.response.authenticatorData);
+    const signature = base64url.encode(cred.response.signature);
+    const userHandle = base64url.encode(cred.response.userHandle);
+    credential.response = {
+      clientDataJSON,
+      authenticatorData,
+      signature,
+      userHandle,
+    };
+  }
+
+  return await _fetch(`/auth/signinResponse`, credential);
+};
+
+
