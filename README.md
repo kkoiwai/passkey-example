@@ -6,7 +6,7 @@ Webブラウザ、iOS(Swift)アプリでパスキー（WebAuthn）による認�
 
 
 以下のサイトの実装をベースに、必要な修正を加えています。
-- https://codelabs.developers.google.com/codelabs/fido2-for-android/
+- https://github.com/android/codelab-fido2
 
 ### License
 
