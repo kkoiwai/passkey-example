@@ -43,8 +43,7 @@ const base64url = require("base64url");
 const fs = require("fs");
 const low = require("lowdb");
 
-import { isoUint8Array } from '@simplewebauthn/server/helpers';
-import { isoBase64URL } from '@simplewebauthn/server/helpers';
+const { isoUint8Array } = require('@simplewebauthn/server/helpers');
 
 if (!fs.existsSync("./.data")) {
   fs.mkdirSync("./.data");
