@@ -43,6 +43,9 @@ const base64url = require("base64url");
 const fs = require("fs");
 const low = require("lowdb");
 
+import { isoUint8Array } from '@simplewebauthn/server/helpers';
+import { isoBase64URL } from '@simplewebauthn/server/helpers';
+
 if (!fs.existsSync("./.data")) {
   fs.mkdirSync("./.data");
 }
@@ -304,7 +307,7 @@ router.post("/registerRequest", csrfCheck, sessionCheck, async (req, res) => {
     const options = fido2.generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: process.env.HOSTNAME,
-      userID: user.id,
+      userID: isoUint8Array.fromUTF8String(user.id),
       userName: user.username,
       timeout: TIMEOUT,
       // Prompt users for additional information about the authenticator.
