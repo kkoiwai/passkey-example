@@ -18,7 +18,6 @@ module.exports = {
               name: 'bundle.css',
             },
           },
-          { loader: 'extract-loader' },
           { loader: 'css-loader' },
           {
             loader: 'sass-loader',
@@ -35,7 +34,7 @@ module.exports = {
       {
         test: /components\.js$/,
         loader: 'babel-loader',
-        query: { presets: ['env'] },
+        options: { presets: ['@babel/preset-env'] },
       },
     ],
   },

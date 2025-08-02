@@ -4,7 +4,7 @@
   "description": "Your First WebAuthn App",
   "main": "server.js",
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "webpack",
     "start": "node server.js"
   },
   "dependencies": {
@@ -41,5 +41,8 @@
     "express",
     "webauthn",
     "fido2"
-  ]
+  ],
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.0"
+  }
 }
