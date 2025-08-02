@@ -87,10 +87,17 @@ export const registerCredential = async (isConditional=false) => {
 
   const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(options);
 
-  const cred = await navigator.credentials.create({
-    publicKey: publicKeyCredentialCreationOptions,
-    mediation: isConditional? "conditional" : null
-  });
+  let cred;
+  if (isConditional) {
+    cred = await navigator.credentials.create({
+      publicKey: options,
+      mediation: "conditional"
+    });
+  } else {
+    cred = await navigator.credentials.create({
+      publicKey: options,
+    });
+  }
 
   const credential = cred.toJSON();
 
