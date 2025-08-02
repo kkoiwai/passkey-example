@@ -90,12 +90,12 @@ export const registerCredential = async (isConditional=false) => {
   let cred;
   if (isConditional) {
     cred = await navigator.credentials.create({
-      publicKey: options,
+      publicKey: publicKeyCredentialCreationOptions,
       mediation: "conditional"
     });
   } else {
     cred = await navigator.credentials.create({
-      publicKey: options,
+      publicKey: publicKeyCredentialCreationOptions,
     });
   }
 
