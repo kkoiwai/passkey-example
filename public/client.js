@@ -65,44 +65,41 @@ export const _fetch = async (path, payload = "") => {
   }
 };
 
+// the following two functions are from https://github.com/MasterKale/webauthn-polyfills/blob/main/src/base64url.ts
+export const base64url_encode = function(buffer) {
+  const base64 = globalThis.btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  return base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+export const base64url_decode = function(base64url) {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  const binStr = globalThis.atob(base64);
+  const bin = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) {
+      bin[i] = binStr.charCodeAt(i);
+  }
+  return bin.buffer;
+}
+
 export const registerCredential = async (isConditional=false) => {
   const opts = {};
   const options = await _fetch("/auth/registerRequest", opts);
 
-  options.user.id = base64url.decode(options.user.id);
-  options.challenge = base64url.decode(options.challenge);
-
-  if (options.excludeCredentials) {
-    for (let cred of options.excludeCredentials) {
-      cred.id = base64url.decode(cred.id);
-    }
-  }
+  const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(options);
 
   let cred;
   if (isConditional) {
     cred = await navigator.credentials.create({
-      publicKey: options,
+      publicKey: publicKeyCredentialCreationOptions,
       mediation: "conditional"
     });
   } else {
     cred = await navigator.credentials.create({
-      publicKey: options
+      publicKey: publicKeyCredentialCreationOptions,
     });
   }
 
-  const credential = {};
-  credential.id = cred.id;
-  credential.rawId = base64url.encode(cred.rawId);
-  credential.type = cred.type;
-
-  if (cred.response) {
-    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
-    const attestationObject = base64url.encode(cred.response.attestationObject);
-    credential.response = {
-      clientDataJSON,
-      attestationObject,
-    };
-  }
+  const credential = cred.toJSON();
 
   let getparam = ""
   if(isConditional){getparam = "?conditional=1"}
@@ -122,39 +119,13 @@ export const authenticate = async (username) => {
 
   const options = await _fetch(url, opts);
 
-  if (options.allowCredentials.length === 0) {
-    // console.info("No registered credentials found.");
-    // return Promise.resolve(null);
-  }
-
-  options.challenge = base64url.decode(options.challenge);
-
-  for (let cred of options.allowCredentials) {
-    cred.id = base64url.decode(cred.id);
-  }
+  const publicKeyRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(options);
 
   const cred = await navigator.credentials.get({
-    publicKey: options,
+    publicKey: publicKeyRequestOptions,
   });
 
-
-  const credential = {};
-  credential.id = cred.id;
-  credential.type = cred.type;
-  credential.rawId = base64url.encode(cred.rawId);
-
-  if (cred.response) {
-    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
-    const authenticatorData = base64url.encode(cred.response.authenticatorData);
-    const signature = base64url.encode(cred.response.signature);
-    const userHandle = base64url.encode(cred.response.userHandle);
-    credential.response = {
-      clientDataJSON,
-      authenticatorData,
-      signature,
-      userHandle,
-    };
-  }
+  const credential = cred.toJSON();
 
   return await _fetch(`/auth/signinResponse`, credential);
 };
@@ -174,7 +145,7 @@ export const createUser = async (username,password) => {
   const rand = new Uint8Array(32);
   self.crypto.getRandomValues(rand);
   console.log(rand)
-  const salt = base64url.encode(rand)
+  const salt = base64url_encode(rand)
   console.log(salt)
   
   var hashedPassword
@@ -217,12 +188,12 @@ export const hashPassword = async (password, salt) => {
   if(!salt){throw "empty salt"}
   
   const uint8password  = new Uint8Array(new TextEncoder().encode(password));
-  const uint8salt = new Uint8Array(base64url.decode(salt));
+  const uint8salt = new Uint8Array(base64url_decode(salt));
   const input = new Uint8Array(uint8password.byteLength + uint8salt.byteLength);
   input.set(uint8password);
   input.set(uint8salt,uint8password.byteLength);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', input));
-  return base64url.encode(digest);
+  return base64url_encode(digest);
 };
 
 export const authenticateWithConditionalUi = async (abortSignal) => {
@@ -249,37 +220,17 @@ export const authenticateWithConditionalUi = async (abortSignal) => {
 
   const options = await _fetch(url, opts);
 
-  options.challenge = base64url.decode(options.challenge);
-
+  const publicKeyRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(options);
 
   const cred = await navigator.credentials.get({
     mediation: "conditional",
-    publicKey: options,
+    publicKey: publicKeyRequestOptions,
     signal:abortSignal
   });
 
-  const credential = {};
-  credential.id = cred.id;
-  credential.type = cred.type;
-  credential.rawId = base64url.encode(cred.rawId);
-
-
-  if (cred.response) {
-    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
-    const authenticatorData = base64url.encode(cred.response.authenticatorData);
-    const signature = base64url.encode(cred.response.signature);
-    const userHandle = base64url.encode(cred.response.userHandle);
-    
-    credential.response = {
-      clientDataJSON,
-      authenticatorData,
-      signature,
-      userHandle,
-    };
-  }
+  const credential = cred.toJSON();
 
   return await _fetch(`/auth/signinResponse`, credential);
-
 };
 
 
@@ -296,42 +247,14 @@ export const reAuthenticateWithConditionalUi = async (username) => {
 
   const options = await _fetch(url, opts);
 
-  if (options.allowCredentials.length === 0) {
-    // console.info("No registered credentials found.");
-    // return Promise.resolve(null);
-  }
-
-  options.challenge = base64url.decode(options.challenge);
-
-  for (let cred of options.allowCredentials) {
-    cred.id = base64url.decode(cred.id);
-  }
+  const publicKeyRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(options);
 
   const cred = await navigator.credentials.get({
     mediation: "conditional",
-    publicKey: options,
+    publicKey: publicKeyRequestOptions,
   });
 
-
-  const credential = {};
-  credential.id = cred.id;
-  credential.type = cred.type;
-  credential.rawId = base64url.encode(cred.rawId);
-
-  if (cred.response) {
-    const clientDataJSON = base64url.encode(cred.response.clientDataJSON);
-    const authenticatorData = base64url.encode(cred.response.authenticatorData);
-    const signature = base64url.encode(cred.response.signature);
-    const userHandle = base64url.encode(cred.response.userHandle);
-    credential.response = {
-      clientDataJSON,
-      authenticatorData,
-      signature,
-      userHandle,
-    };
-  }
+  const credential = cred.toJSON();
 
   return await _fetch(`/auth/signinResponse`, credential);
 };
-
-
