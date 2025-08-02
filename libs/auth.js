@@ -301,7 +301,7 @@ router.post("/registerRequest", csrfCheck, sessionCheck, async (req, res) => {
     // }
 
     // Generate registration options for WebAuthn create
-    const options = fido2.generateAttestationOptions({
+    const options = fido2.generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: process.env.HOSTNAME,
       userID: user.id,
@@ -367,8 +367,8 @@ router.post("/registerResponse", csrfCheck, sessionCheck, async (req, res) => {
       credential = forceUPflag(credential);
     }
 
-    const verification = await fido2.verifyAttestationResponse({
-      credential,
+    const verification = await fido2.verifyRegistrationResponse({
+      response: credential,
       expectedChallenge,
       expectedOrigin,
       expectedRPID,
@@ -477,7 +477,7 @@ router.post("/signinRequest", csrfCheck, async (req, res) => {
 
     const userVerification = "required";
 
-    const options = fido2.generateAssertionOptions({
+    const options = fido2.generateAuthenticationOptions({
       timeout: TIMEOUT,
       rpID: process.env.HOSTNAME,
       allowCredentials,
@@ -543,7 +543,7 @@ router.post("/signinResponse", csrfCheck, async (req, res) => {
       throw "Authenticating credential not found.";
     }
 
-    const verification = fido2.verifyAssertionResponse({
+    const verification = fido2.verifyAuthenticationResponse({
       credential: body,
       expectedChallenge,
       expectedOrigin,
