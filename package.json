@@ -4,7 +4,7 @@
   "description": "Your First WebAuthn App",
   "main": "server.js",
   "scripts": {
-    "build": "webpack -p",
+    "build": "webpack --mode production",
     "start": "node server.js"
   },
   "dependencies": {
