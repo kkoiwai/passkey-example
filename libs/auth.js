@@ -42,6 +42,8 @@ const fido2 = require("@simplewebauthn/server");
 const base64url = require("base64url");
 const fs = require("fs");
 const low = require("lowdb");
+const cbor = require("cbor");
+const aaguids = require("./aaguids.json");
 
 if (!fs.existsSync("./.data")) {
   fs.mkdirSync("./.data");
@@ -235,6 +237,25 @@ router.post("/removeKey", csrfCheck, sessionCheck, (req, res) => {
   res.json({});
 });
 
+/**
+ * Renames a credential id attached to the user
+ **/
+router.post("/renameKey", csrfCheck, sessionCheck, (req, res) => {
+  console.log("renameKey request: " + (req.body ? JSON.stringify(req.body) : ""));
+
+  const credId = req.body.credId;
+  const newName = req.body.newName;
+  const username = req.session.username;
+  const user = db.get("users").find({ username: username }).value();
+  
+  db.get("passkeys")
+    .find({ passkey_user_id: user.id, credId: credId })
+    .assign({ name: newName })
+    .write(); 
+
+  res.json({});
+});
+
 
 /**
  * Respond with required information to call navigator.credential.create()
@@ -312,7 +333,6 @@ router.post("/registerRequest", csrfCheck, sessionCheck, async (req, res) => {
       // Prevent users from re-registering existing authenticators
       excludeCredentials,
       authenticatorSelection: {
-        authenticatorAttachment: "platform",
         requireResidentKey: true,
         userVerification: "preferred",
       },
@@ -384,6 +404,31 @@ router.post("/registerResponse", csrfCheck, sessionCheck, async (req, res) => {
 
     const { base64PublicKey, base64CredentialID, counter } = authenticatorInfo;
 
+    // Parse AAGUID from authData
+    let aaguid = "00000000-0000-0000-0000-000000000000";
+    try {
+      const attObjBuffer = base64url.toBuffer(credential.response.attestationObject);
+      const decodedAttObj = cbor.decodeFirstSync(attObjBuffer);
+      const authData = decodedAttObj.authData;
+      // if AT bit is set (bit 6 of byte 32)
+      if (authData[32] & 0x40) {
+        const aaguidBuffer = authData.slice(37, 53);
+        aaguid = `${aaguidBuffer.slice(0, 4).toString('hex')}-${aaguidBuffer.slice(4, 6).toString('hex')}-${aaguidBuffer.slice(6, 8).toString('hex')}-${aaguidBuffer.slice(8, 10).toString('hex')}-${aaguidBuffer.slice(10, 16).toString('hex')}`;
+      }
+    } catch (e) {
+      // Ignore AAGUID parsing errors
+    }
+
+    let providerName = 'Unknown passkey provider';
+    let providerIcon = '';
+    if (aaguid !== '00000000-0000-0000-0000-000000000000') {
+      const provider = aaguids[aaguid];
+      if (provider) {
+        providerName = provider.name || providerName;
+        providerIcon = provider.icon_light || provider.icon_dark || '';
+      }
+    }
+
     const user = db.get("users").find({ username: username }).value();
     console.log("registering a passkey for a user: " + JSON.stringify(user));
     const date = new Date();
@@ -406,6 +451,14 @@ router.post("/registerResponse", csrfCheck, sessionCheck, async (req, res) => {
           publicKey: base64PublicKey,
           prevCounter: counter,
           created: timestamp,
+          credentialType: 'public-key',
+          credentialDeviceType: 'singleDevice',
+          credentialBackedUp: false,
+          aaguid: aaguid,
+          name: providerName,
+          providerIcon: providerIcon,
+          transports: credential.response.transports || [],
+          lastUsedAt: Date.now()
         })
         .write();
     }
@@ -475,7 +528,7 @@ router.post("/signinRequest", csrfCheck, async (req, res) => {
       }
     }
 
-    const userVerification = "required";
+    const userVerification = "preferred";
 
     const options = fido2.generateAssertionOptions({
       timeout: TIMEOUT,
@@ -533,14 +586,16 @@ router.post("/signinResponse", csrfCheck, async (req, res) => {
       credential = db.get("passkeys").find({ credId: req.body.id }).value();
 
       if (!credential) {
-        throw "Authenticating credential not found.";
+        res.status(404).json({ error: "Authenticating credential not found.", unknownCredId: req.body.id, rpID: process.env.HOSTNAME });
+        return;
       }
       user = db.get("users").find({ id: credential.passkey_user_id }).value();
       req.session.username = user.username;
     }
 
     if (!credential) {
-      throw "Authenticating credential not found.";
+      res.status(404).json({ error: "Authenticating credential not found.", unknownCredId: req.body.id, rpID: process.env.HOSTNAME });
+      return;
     }
 
     const verification = fido2.verifyAssertionResponse({
@@ -569,7 +624,7 @@ router.post("/signinResponse", csrfCheck, async (req, res) => {
     console.error(e.message);
     console.error(e.stack);
     delete req.session.challenge;
-    res.status(400).json({ error: e, unknownCredId: req.body.id, rpID: process.env.HOSTNAME  });
+    res.status(400).json({ error: e.message || e });
   }
 });
 

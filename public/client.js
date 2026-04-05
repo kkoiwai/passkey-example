@@ -51,16 +51,18 @@ export const _fetch = async (path, payload = "") => {
   if (res.status === 200) {
     // Server authentication succeeded
     return res.json();
-  } else {
+  } else if (res.status === 404) {
     // Server authentication failed
     const result = await res.json();
-    if(result.unknownCredId && result.rpID && PublicKeyCredential && PublicKeyCredential.signalUnknownCredential){
+    if(result.unknownCredId && result.rpID && window.PublicKeyCredential && PublicKeyCredential.signalUnknownCredential){
       await PublicKeyCredential.signalUnknownCredential({
         rpId:result.rpID,
         credentialId:result.unknownCredId,
-      })
+      });
     }
-    
+    throw result.error;
+  } else {
+    const result = await res.json();
     throw result.error;
   }
 };
@@ -82,21 +84,45 @@ export const base64url_decode = function(base64url) {
 }
 
 export const registerCredential = async (isConditional=false) => {
+  if (window.PublicKeyCredential && PublicKeyCredential.getClientCapabilities) {
+    const capabilities = await PublicKeyCredential.getClientCapabilities();
+    if (!capabilities.passkeyPlatformAuthenticator) {
+      throw new Error("Platform authenticator is not available.");
+    }
+    if (isConditional && !capabilities.conditionalCreate) {
+      console.warn("Conditional create is not supported");
+      return;
+    }
+  }
+
   const opts = {};
   const options = await _fetch("/auth/registerRequest", opts);
 
   const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(options);
 
   let cred;
-  if (isConditional) {
-    cred = await navigator.credentials.create({
-      publicKey: publicKeyCredentialCreationOptions,
-      mediation: "conditional"
-    });
-  } else {
-    cred = await navigator.credentials.create({
-      publicKey: publicKeyCredentialCreationOptions,
-    });
+  try {
+    if (isConditional) {
+      cred = await navigator.credentials.create({
+        publicKey: publicKeyCredentialCreationOptions,
+        mediation: "conditional"
+      });
+    } else {
+      cred = await navigator.credentials.create({
+        publicKey: publicKeyCredentialCreationOptions,
+      });
+    }
+  } catch (e) {
+    if (e.name === 'InvalidStateError') {
+      throw new Error("A passkey for this account already exists on this device.");
+    } else if (e.name === 'SecurityError') {
+      throw new Error("Security Error - the page must be HTTPS and origin must match.");
+    } else if (e.name === 'NotAllowedError') {
+      throw new Error("Registration was cancelled.");
+    } else if (e.name === 'AbortError') {
+      throw new Error("Operation aborted.");
+    }
+    throw e;
   }
 
   const credential = cred.toJSON();
@@ -121,9 +147,17 @@ export const authenticate = async (username) => {
 
   const publicKeyRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(options);
 
-  const cred = await navigator.credentials.get({
-    publicKey: publicKeyRequestOptions,
-  });
+  let cred;
+  try {
+    cred = await navigator.credentials.get({
+      publicKey: publicKeyRequestOptions,
+    });
+  } catch (e) {
+    if (e.name === 'NotAllowedError' || e.name === 'AbortError') {
+      throw new Error("Authentication cancelled or aborted by user.");
+    }
+    throw e;
+  }
 
   const credential = cred.toJSON();
 
@@ -132,6 +166,11 @@ export const authenticate = async (username) => {
 
 export const unregisterCredential = async (credId) => {
   await _fetch(`/auth/removeKey?credId=${encodeURIComponent(credId)}`);
+};
+
+export const renameCredential = async (credId, newName) => {
+  const payload = { credId, newName };
+  return await _fetch('/auth/renameKey', payload);
 };
 
 export const deleteUser = async (username) => {
@@ -242,19 +281,36 @@ export const reAuthenticateWithConditionalUi = async (username) => {
   let url = "/auth/signinRequest";
   
   if(username){
-    url = url + "/?username="+ username;
+    url = url + "?username="+ username;
   }
 
   const options = await _fetch(url, opts);
 
   const publicKeyRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(options);
 
-  const cred = await navigator.credentials.get({
-    mediation: "conditional",
-    publicKey: publicKeyRequestOptions,
-  });
+  try {
+    const cred = await navigator.credentials.get({
+      mediation: "conditional",
+      publicKey: publicKeyRequestOptions,
+    });
 
-  const credential = cred.toJSON();
-
-  return await _fetch(`/auth/signinResponse`, credential);
+    const credential = cred.toJSON();
+    return await _fetch(`/auth/signinResponse`, credential);
+  } catch(e) {
+    if (e.name === 'NotAllowedError' || e.name === 'AbortError') {
+      throw new Error("Authentication cancelled or aborted by user.");
+    }
+    throw e;
+  }
 };
+
+export const syncPasskeys = async (userId, acceptedCredentialIds) => {
+  if (window.PublicKeyCredential && PublicKeyCredential.signalAllAcceptedCredentials) {
+    await PublicKeyCredential.signalAllAcceptedCredentials({
+      rpId: window.location.hostname,
+      userId: userId,
+      allAcceptedCredentialIds: acceptedCredentialIds
+    }).catch(e => console.warn("Failed to sync passkeys:", e));
+  }
+};
+

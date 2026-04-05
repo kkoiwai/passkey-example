@@ -76,7 +76,7 @@
     <mwc-button><a href="/auth/signout">Sign out</a></mwc-button>
   </main>
   <script type="module">
-    import { _fetch, registerCredential, unregisterCredential } from '/client.js';
+    import { _fetch, registerCredential, unregisterCredential, renameCredential, syncPasskeys } from '/client.js';
     import { html, render } from 'https://unpkg.com/lit-html@1.0.0/lit-html.js?module';
 
     const register = document.querySelector('#register');
@@ -102,13 +102,25 @@
     const getCredentials = async () => {
       const res = await _fetch('/auth/getKeys');
       const list = document.querySelector('#list');
+
+      // Sync the Signal API
+      if (res.user_id && res.credentials) {
+        const credentialIds = res.credentials.map(c => c.credId);
+        syncPasskeys(res.user_id, credentialIds);
+      }
+
       const creds = html`${res.credentials.length > 0 ? res.credentials.map(cred => html`
 
-          <div class="mdc-card credential">
-            <span class="mdc-typography mdc-typography--body2">${cred.credId}</span>
-            <pre class="public-key">${cred.publicKey}</pre>
-            <pre class="created">${cred.created}</pre>
+          <div class="mdc-card credential" style="padding:16px; margin-bottom:16px;">
+            <span class="mdc-typography mdc-typography--headline6" style="display:flex; align-items:center; gap:8px;">
+              ${cred.providerIcon ? html`<img src="${cred.providerIcon}" style="width:24px; height:24px;" alt="icon" />` : ''}
+              ${cred.name || 'Unknown passkey provider'}
+            </span>
+            <span class="mdc-typography mdc-typography--body2" style="word-break:break-all;">${cred.credId}</span>
+            <pre class="created">Registered: ${new Date(cred.created).toLocaleString()}</pre>
+            <pre class="created">Last Used: ${cred.lastUsedAt ? new Date(cred.lastUsedAt).toLocaleString() : 'Never'}</pre>
             <div class="mdc-card__actions">
+              <mwc-button id="${cred.credId}" @click="${() => renameCred(cred.credId, cred.name)}">Rename</mwc-button>
               <mwc-button id="${cred.credId}" @click="${removeCredential}" raised>Remove</mwc-button>
             </div>
           </div>`) : html`
@@ -122,9 +134,21 @@
     const removeCredential = async e => {
       try {
         await unregisterCredential(e.target.id);
-        getCredentials();
+        getCredentials(); // implicitly calls syncPasskeys
       } catch (e) {
         alert(e);
+      }
+    };
+
+    const renameCred = async (credId, oldName) => {
+      const newName = prompt("Enter new name for passkey:", oldName || "My Passkey");
+      if (newName && newName !== oldName) {
+        try {
+          await renameCredential(credId, newName);
+          getCredentials(); // implicitly calls syncPasskeys
+        } catch(e) {
+          alert(e);
+        }
       }
     };
 
