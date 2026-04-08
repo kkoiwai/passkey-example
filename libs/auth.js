@@ -614,8 +614,9 @@ router.post("/signinResponse", csrfCheck, async (req, res) => {
     console.log(JSON.stringify(authenticatorInfo));
 
     credential.prevCounter = authenticatorInfo.counter;
+    credential.lastUsedAt = Date.now();
 
-    db.get("passkeys").find({ id: credential.id }).assign(credential).write();
+    db.get("passkeys").find({ credId: credential.credId }).assign(credential).write();
 
     delete req.session.challenge;
     req.session["signed-in"] = "yes";
